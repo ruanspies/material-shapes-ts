@@ -134,7 +134,9 @@ function progressDistance(a: number, b: number): number {
 }
 
 function progressInRange(p: number, start: number, end: number): boolean {
-    if (start < end) return p >= start && p <= end;
+    // Kotlin: `if (progressTo >= progressFrom) progress in start..end else ...`.
+    // The equal case must use the inclusive branch (matches only p === start).
+    if (end >= start) return p >= start && p <= end;
     return p >= start || p <= end;
 }
 

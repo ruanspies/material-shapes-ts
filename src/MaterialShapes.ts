@@ -18,15 +18,13 @@ import { CornerRounding } from './CornerRounding.js';
 import { Morph } from './Morph.js';
 import { RoundedPolygon } from './RoundedPolygon.js';
 import { Shapes } from './Shapes.js';
-import { Point } from './Point.js';
 import { Path } from './Path.js';
-import { Shape } from './Shape.js';
 import { Matrix } from './Matrix.js';
-import { Size } from './Size.js';
 import { Offset } from './Offset.js';
+import { Cubic } from './Cubic.js';
 
-export function morphToPath(morph: Morph, progress: number, path: Path = new Path(), startAngle: number = 0): Path {
-    const cubics = morph.asCubics(progress);
+/** Appends a closed sub-path built from a list of cubic Béziers. */
+function cubicsToPath(cubics: readonly Cubic[], path: Path): Path {
     path.moveTo(cubics[0].anchor0X, cubics[0].anchor0Y);
     for (const cubic of cubics) {
         path.cubicTo(
@@ -42,39 +40,20 @@ export function morphToPath(morph: Morph, progress: number, path: Path = new Pat
     return path;
 }
 
-export function roundedPolygonToPath(polygon: RoundedPolygon, startAngle: number = 0): Path {
-    const path = new Path();
-    const cubics = polygon.cubics;
-    path.moveTo(cubics[0].anchor0X, cubics[0].anchor0Y);
-    for (const cubic of cubics) {
-        path.cubicTo(
-            cubic.control0X,
-            cubic.control0Y,
-            cubic.control1X,
-            cubic.control1Y,
-            cubic.anchor1X,
-            cubic.anchor1Y
-        );
-    }
-    path.close();
-    return path;
+/**
+ * Builds the SVG path for a morph at the given progress (0 = start shape,
+ * 1 = end shape). Coordinates are in the normalized [0, 1] shape space.
+ */
+export function morphToPath(morph: Morph, progress: number, path: Path = new Path()): Path {
+    return cubicsToPath(morph.asCubics(progress), path);
 }
 
-class PolygonShape extends Shape {
-    constructor(private polygon: RoundedPolygon, private startAngle: number) {
-        super();
-    }
-
-    createOutline(size: Size, layoutDirection: any, density: any): { path: Path } {
-        const path = roundedPolygonToPath(this.polygon, this.startAngle);
-        // This is a simplified implementation. A real implementation would need to handle
-        // scaling and translation to fit the size.
-        return { path };
-    }
-}
-
-export function roundedPolygonToShape(polygon: RoundedPolygon, startAngle: number = 0): Shape {
-    return new PolygonShape(polygon, startAngle);
+/**
+ * Builds the SVG path for a shape. Coordinates are in the normalized [0, 1]
+ * shape space, so a `viewBox="0 0 1 1"` renders it at native proportions.
+ */
+export function roundedPolygonToPath(polygon: RoundedPolygon, path: Path = new Path()): Path {
+    return cubicsToPath(polygon.cubics, path);
 }
 
 class PointNRound {
@@ -236,16 +215,13 @@ export class MaterialShapes {
         return this._sunny!;
     }
 
-    /*
     static get VerySunny(): RoundedPolygon {
         if (!this._verySunny) {
             this._verySunny = this.verySunny().normalized();
         }
         return this._verySunny!;
     }
-    */
 
-    /*
     static get Cookie4Sided(): RoundedPolygon {
         if (!this._cookie4Sided) {
             this._cookie4Sided = this.cookie4().normalized();
@@ -378,7 +354,30 @@ export class MaterialShapes {
         }
         return this._heart!;
     }
-    */
+
+    /**
+     * The names of all Material shapes, in canonical display order (matching the
+     * Material Design shapes reference chart).
+     */
+    static readonly names = [
+        'Circle', 'Square', 'Slanted', 'Arch', 'SemiCircle',
+        'Oval', 'Pill', 'Triangle', 'Arrow', 'Fan',
+        'Diamond', 'ClamShell', 'Pentagon', 'Gem', 'VerySunny',
+        'Sunny', 'Cookie4Sided', 'Cookie6Sided', 'Cookie7Sided', 'Cookie9Sided',
+        'Cookie12Sided', 'Clover4Leaf', 'Clover8Leaf', 'Burst', 'SoftBurst',
+        'Boom', 'SoftBoom', 'Flower', 'Puffy', 'PuffyDiamond',
+        'Ghostish', 'PixelCircle', 'PixelTriangle', 'Bun', 'Heart',
+    ] as const;
+
+    /** Looks up a shape by name. */
+    static byName(name: MaterialShapeName): RoundedPolygon {
+        return (this as unknown as Record<string, RoundedPolygon>)[name];
+    }
+
+    /** Returns all 35 shapes paired with their names, in canonical order. */
+    static all(): Array<{ name: MaterialShapeName; polygon: RoundedPolygon }> {
+        return MaterialShapes.names.map((name) => ({ name, polygon: MaterialShapes.byName(name) }));
+    }
 
     private static square(): RoundedPolygon {
         return Shapes.rectangle(1, 1, this.cornerRound30);
@@ -395,11 +394,12 @@ export class MaterialShapes {
     }
 
     private static arch(): RoundedPolygon {
-        return RoundedPolygon.create(
+        return RoundedPolygon.createFromNumVertices(
             4,
-            undefined,
-            undefined,
-            undefined,
+            1,
+            0,
+            0,
+            CornerRounding.Unrounded,
             [this.cornerRound100, this.cornerRound100, this.cornerRound20, this.cornerRound20],
         ).transformed(this.rotateNeg135);
     }
@@ -455,9 +455,13 @@ export class MaterialShapes {
     }
 
     private static triangle(): RoundedPolygon {
-        return RoundedPolygon.create(3, undefined, undefined, undefined, this.cornerRound20).transformed(
-            this.rotateNeg90
-        );
+        return RoundedPolygon.createFromNumVertices(
+            3,
+            1,
+            0,
+            0,
+            this.cornerRound20
+        ).transformed(this.rotateNeg90);
     }
 
     private static diamond(): RoundedPolygon {
@@ -515,6 +519,239 @@ export class MaterialShapes {
         );
     }
 
+    private static verySunny(): RoundedPolygon {
+        return this.customPolygon(
+            [
+                new PointNRound(new Offset(0.500, 1.080), new CornerRounding(0.085)),
+                new PointNRound(new Offset(0.358, 0.843), new CornerRounding(0.085)),
+            ],
+            8
+        );
+    }
+
+    private static cookie4(): RoundedPolygon {
+        return this.customPolygon(
+            [
+                new PointNRound(new Offset(1.237, 1.236), new CornerRounding(0.258)),
+                new PointNRound(new Offset(0.500, 0.918), new CornerRounding(0.233)),
+            ],
+            4
+        );
+    }
+
+    private static cookie6(): RoundedPolygon {
+        return this.customPolygon(
+            [
+                new PointNRound(new Offset(0.723, 0.884), new CornerRounding(0.394)),
+                new PointNRound(new Offset(0.500, 1.099), new CornerRounding(0.398)),
+            ],
+            6
+        );
+    }
+
+    private static cookie7(): RoundedPolygon {
+        return Shapes.star(7, undefined, 0.75, this.cornerRound50)
+            .transformed(this.rotateNeg90);
+    }
+
+    private static cookie9(): RoundedPolygon {
+        return Shapes.star(9, undefined, 0.8, this.cornerRound50)
+            .transformed(this.rotateNeg90);
+    }
+
+    private static cookie12(): RoundedPolygon {
+        return Shapes.star(12, undefined, 0.8, this.cornerRound50)
+            .transformed(this.rotateNeg90);
+    }
+
+    private static ghostish(): RoundedPolygon {
+        return this.customPolygon(
+            [
+                new PointNRound(new Offset(0.500, 0), new CornerRounding(1.000)),
+                new PointNRound(new Offset(1, 0), new CornerRounding(1.000)),
+                new PointNRound(new Offset(1, 1.140), new CornerRounding(0.254, 0.106)),
+                new PointNRound(new Offset(0.575, 0.906), new CornerRounding(0.253)),
+            ],
+            1,
+            true
+        );
+    }
+
+    private static clover4(): RoundedPolygon {
+        return this.customPolygon(
+            [
+                new PointNRound(new Offset(0.500, 0.074)),
+                new PointNRound(new Offset(0.725, -0.099), new CornerRounding(0.476)),
+            ],
+            4,
+            true
+        );
+    }
+
+    private static clover8(): RoundedPolygon {
+        return this.customPolygon(
+            [
+                new PointNRound(new Offset(0.500, 0.036)),
+                new PointNRound(new Offset(0.758, -0.101), new CornerRounding(0.209)),
+            ],
+            8
+        );
+    }
+
+    private static burst(): RoundedPolygon {
+        return this.customPolygon(
+            [
+                new PointNRound(new Offset(0.500, -0.006), new CornerRounding(0.006)),
+                new PointNRound(new Offset(0.592, 0.158), new CornerRounding(0.006)),
+            ],
+            12
+        );
+    }
+
+    private static softBurst(): RoundedPolygon {
+        return this.customPolygon(
+            [
+                new PointNRound(new Offset(0.193, 0.277), new CornerRounding(0.053)),
+                new PointNRound(new Offset(0.176, 0.055), new CornerRounding(0.053)),
+            ],
+            10
+        );
+    }
+
+    private static boom(): RoundedPolygon {
+        return this.customPolygon(
+            [
+                new PointNRound(new Offset(0.457, 0.296), new CornerRounding(0.007)),
+                new PointNRound(new Offset(0.500, -0.051), new CornerRounding(0.007)),
+            ],
+            15
+        );
+    }
+
+    private static softBoom(): RoundedPolygon {
+        return this.customPolygon(
+            [
+                new PointNRound(new Offset(0.733, 0.454)),
+                new PointNRound(new Offset(0.839, 0.437), new CornerRounding(0.532)),
+                new PointNRound(new Offset(0.949, 0.449), new CornerRounding(0.439, 1.000)),
+                new PointNRound(new Offset(0.998, 0.478), new CornerRounding(0.174)),
+            ],
+            16,
+            true
+        );
+    }
+
+    private static flower(): RoundedPolygon {
+        return this.customPolygon(
+            [
+                new PointNRound(new Offset(0.370, 0.187)),
+                new PointNRound(new Offset(0.416, 0.049), new CornerRounding(0.381)),
+                new PointNRound(new Offset(0.479, 0.001), new CornerRounding(0.095)),
+            ],
+            8,
+            true
+        );
+    }
+
+    private static puffy(): RoundedPolygon {
+        const m = new Matrix().scale(1, 0.742);
+        return this.customPolygon(
+            [
+                new PointNRound(new Offset(0.500, 0.053)),
+                new PointNRound(new Offset(0.545, -0.040), new CornerRounding(0.405)),
+                new PointNRound(new Offset(0.670, -0.035), new CornerRounding(0.426)),
+                new PointNRound(new Offset(0.717, 0.066), new CornerRounding(0.574)),
+                new PointNRound(new Offset(0.722, 0.128)),
+                new PointNRound(new Offset(0.777, 0.002), new CornerRounding(0.360)),
+                new PointNRound(new Offset(0.914, 0.149), new CornerRounding(0.660)),
+                new PointNRound(new Offset(0.926, 0.289), new CornerRounding(0.660)),
+                new PointNRound(new Offset(0.881, 0.346)),
+                new PointNRound(new Offset(0.940, 0.344), new CornerRounding(0.126)),
+                new PointNRound(new Offset(1.003, 0.437), new CornerRounding(0.255)),
+            ],
+            2,
+            true
+        ).transformed(m);
+    }
+
+    private static puffyDiamond(): RoundedPolygon {
+        return this.customPolygon(
+            [
+                new PointNRound(new Offset(0.870, 0.130), new CornerRounding(0.146)),
+                new PointNRound(new Offset(0.818, 0.357)),
+                new PointNRound(new Offset(1.000, 0.332), new CornerRounding(0.853)),
+            ],
+            4,
+            true
+        );
+    }
+
+    private static pixelCircle(): RoundedPolygon {
+        return this.customPolygon(
+            [
+                new PointNRound(new Offset(0.500, 0.000)),
+                new PointNRound(new Offset(0.704, 0.000)),
+                new PointNRound(new Offset(0.704, 0.065)),
+                new PointNRound(new Offset(0.843, 0.065)),
+                new PointNRound(new Offset(0.843, 0.148)),
+                new PointNRound(new Offset(0.926, 0.148)),
+                new PointNRound(new Offset(0.926, 0.296)),
+                new PointNRound(new Offset(1.000, 0.296)),
+            ],
+            2,
+            true
+        );
+    }
+
+    private static pixelTriangle(): RoundedPolygon {
+        return this.customPolygon(
+            [
+                new PointNRound(new Offset(0.110, 0.500)),
+                new PointNRound(new Offset(0.113, 0.000)),
+                new PointNRound(new Offset(0.287, 0.000)),
+                new PointNRound(new Offset(0.287, 0.087)),
+                new PointNRound(new Offset(0.421, 0.087)),
+                new PointNRound(new Offset(0.421, 0.170)),
+                new PointNRound(new Offset(0.560, 0.170)),
+                new PointNRound(new Offset(0.560, 0.265)),
+                new PointNRound(new Offset(0.674, 0.265)),
+                new PointNRound(new Offset(0.675, 0.344)),
+                new PointNRound(new Offset(0.789, 0.344)),
+                new PointNRound(new Offset(0.789, 0.439)),
+                new PointNRound(new Offset(0.888, 0.439)),
+            ],
+            1,
+            true
+        );
+    }
+
+    private static bun(): RoundedPolygon {
+        return this.customPolygon(
+            [
+                new PointNRound(new Offset(0.796, 0.500)),
+                new PointNRound(new Offset(0.853, 0.518), new CornerRounding(1)),
+                new PointNRound(new Offset(0.992, 0.631), new CornerRounding(1)),
+                new PointNRound(new Offset(0.968, 1.000), new CornerRounding(1)),
+            ],
+            2,
+            true
+        );
+    }
+
+    private static heart(): RoundedPolygon {
+        return this.customPolygon(
+            [
+                new PointNRound(new Offset(0.500, 0.268), new CornerRounding(0.016)),
+                new PointNRound(new Offset(0.792, -0.066), new CornerRounding(0.958)),
+                new PointNRound(new Offset(1.064, 0.276), new CornerRounding(1.000)),
+                new PointNRound(new Offset(0.501, 0.946), new CornerRounding(0.129)),
+            ],
+            1,
+            true
+        );
+    }
+
+
     /**
      * Creates a custom polygon by repeating and rotating a set of points.
      * @param pnr The points and rounding information for the base shape.
@@ -561,7 +798,10 @@ export class MaterialShapes {
             return result;
         } else {
             return Array.from({ length: points.length * reps }, (_, i) => {
-                const point = this.rotatePoint(points[i % points.length].o, (i / points.length) * 360 / reps, center);
+                // NB: Kotlin `(it / np)` is INTEGER division — the repetition index
+                // (0,0,1,1,...), not a fractional value. Must floor here.
+                const rep = Math.floor(i / points.length);
+                const point = this.rotatePoint(points[i % points.length].o, rep * 360 / reps, center);
                 return new PointNRound(point, points[i % points.length].r);
             });
         }
@@ -577,3 +817,6 @@ export class MaterialShapes {
         );
     }
 }
+
+/** The name of a Material shape (e.g. 'Circle', 'Heart'). */
+export type MaterialShapeName = (typeof MaterialShapes.names)[number];

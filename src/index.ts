@@ -1,5 +1,7 @@
+export * from './Animate.js';
 export * from './ArcConverter.js';
 export * from './CornerRounding.js';
+export * from './Easing.js';
 export * from './Cubic.js';
 export * from './DoubleMapper.js';
 export * from './FeatureDetector.js';
@@ -16,8 +18,6 @@ export * from './Point.js';
 export * from './PolygonMeasure.js';
 export * from './PolygonValidation.js';
 export * from './RoundedPolygon.js';
-export * from './Shape.js';
 export * from './Shapes.js';
-export * from './Size.js';
 export * from './SvgPathParser.js';
 export * from './Utils.js';

@@ -1,0 +1,80 @@
+<div class="wrap">
+  <header class="masthead">
+    <div>
+      <div class="brand-eyebrow">material-shapes-ts</div>
+      <h1>35 shapes, and every morph between them.</h1>
+      <p class="lede">A faithful TypeScript port of Material Design's shape system — the full catalog plus smooth shape-to-shape transitions. Scrub the slider, or tap any shape below to morph into it.</p>
+    </div>
+    <button class="theme-toggle" id="themeToggle" aria-label="Toggle light and dark theme" title="Toggle theme">◐</button>
+  </header>
+
+  <section class="section-head">
+    <h2>Morph playground</h2>
+    <span class="rule"></span>
+  </section>
+
+  <div class="playground">
+    <div class="stage">
+      <div class="stage-badge"><b id="fromLabel">Circle</b> &rarr; <b id="toLabel">Heart</b></div>
+      <svg viewBox="0 0 1 1" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><path id="stagePath" d=""></path></svg>
+    </div>
+    <div class="controls">
+      <div class="pair">
+        <div class="field">
+          <label for="fromSel">From</label>
+          <select id="fromSel"></select>
+        </div>
+        <button class="swap" id="swapBtn" aria-label="Swap from and to" title="Swap">&#8646;</button>
+        <div class="field">
+          <label for="toSel">To</label>
+          <select id="toSel"></select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="progress">Progress</label>
+        <div class="scrubber">
+          <input type="range" id="progress" min="0" max="100" value="0" />
+          <span class="pct" id="pct">0%</span>
+        </div>
+      </div>
+
+      <div class="row">
+        <button class="play" id="playBtn">&#9654;&nbsp; Play morph</button>
+        <div class="field easing-field">
+          <label for="easingSel">Easing</label>
+          <select id="easingSel"></select>
+        </div>
+      </div>
+      <p class="hint">The <b>Play</b> button drives the animation through the library's own <code>animateMorph()</code> with Material 3 easing. Corners are matched by convexity, so shapes flow into one another instead of cross-fading.</p>
+    </div>
+  </div>
+
+  <section class="section-head">
+    <h2>The full catalog</h2>
+    <span class="count" id="galleryCount"></span>
+    <span class="rule"></span>
+  </section>
+  <div class="gallery" id="gallery"></div>
+
+  <section class="section-head">
+    <h2>Use it</h2>
+    <span class="rule"></span>
+  </section>
+  <div class="usage">
+    <div class="usage-head" id="tabs">
+      <button class="tab active" data-tab="core">Core</button>
+      <button class="tab" data-tab="morph">Morph</button>
+      <button class="tab" data-tab="vue">Vue</button>
+    </div>
+    <div class="code">
+      <button class="copy" id="copyBtn">Copy</button>
+      <pre id="codeBlock"></pre>
+    </div>
+  </div>
+
+  <footer>
+    <span>Ported from AndroidX Graphics Shapes &amp; Compose Material3.</span>
+    <span>Apache-2.0 &middot; <code>npm i material-shapes-ts</code></span>
+  </footer>
+</div>

@@ -154,10 +154,13 @@ export class RoundedPolygon {
         if (bounds.length < 4) throw new Error("Required bounds size of 4");
         let maxDistSquared = 0;
         for (const cubic of this.cubics) {
-            const anchorDistance = distance(cubic.anchor0X - this.centerX, cubic.anchor0Y - this.centerY);
+            // Accumulate SQUARED distances; sqrt once at the end (Kotlin parity).
+            const adx = cubic.anchor0X - this.centerX, ady = cubic.anchor0Y - this.centerY;
+            const anchorDistSquared = adx * adx + ady * ady;
             const middlePoint = cubic.pointOnCurve(0.5);
-            const middleDistance = distance(middlePoint.x - this.centerX, middlePoint.y - this.centerY);
-            maxDistSquared = Math.max(maxDistSquared, anchorDistance, middleDistance);
+            const mdx = middlePoint.x - this.centerX, mdy = middlePoint.y - this.centerY;
+            const middleDistSquared = mdx * mdx + mdy * mdy;
+            maxDistSquared = Math.max(maxDistSquared, anchorDistSquared, middleDistSquared);
         }
         const dist = Math.sqrt(maxDistSquared);
         bounds[0] = this.centerX - dist;

@@ -3,3 +3,7 @@ dist
 .DS_Store
 *.log
 .pnpm-debug.log*
+
+# generated demo (run: npm run build:demo)
+demo/index.html
+demo/artifact.html

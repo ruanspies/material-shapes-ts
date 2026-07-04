@@ -222,7 +222,10 @@ export interface Measurer {
 }
 
 export class LengthMeasurer implements Measurer {
-    private readonly segments = 10;
+    // Kotlin fixes this at 3 — "the minimum number needed to achieve up to 98.5%
+    // accuracy" for arc-length measurement. Using a different count shifts every
+    // outline-progress value and diverges the morph match from the reference.
+    private readonly segments = 3;
 
     measureCubic(c: Cubic): number {
         return this.closestProgressTo(c, Infinity)[1];

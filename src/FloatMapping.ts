@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { DistanceEpsilon } from './Utils.js';
+import { DistanceEpsilon, positiveModulo } from './Utils.js';
 
 export function progressInRange(progress: number, progressFrom: number, progressTo: number): boolean {
     if (progressTo >= progressFrom) {
@@ -30,14 +30,17 @@ export function linearMap(xValues: number[], yValues: number[], x: number): numb
     const segmentStartIndex = xValues.findIndex((_, i) =>
         progressInRange(x, xValues[i], xValues[(i + 1) % xValues.length])
     );
+    if (segmentStartIndex === -1) {
+        throw new Error(`No segment found in linearMap for x=${x} over ${xValues.join(", ")}`);
+    }
     const segmentEndIndex = (segmentStartIndex + 1) % xValues.length;
-    const segmentSizeX = (xValues[segmentEndIndex] - xValues[segmentStartIndex] + 1) % 1;
-    const segmentSizeY = (yValues[segmentEndIndex] - yValues[segmentStartIndex] + 1) % 1;
+    const segmentSizeX = positiveModulo(xValues[segmentEndIndex] - xValues[segmentStartIndex], 1);
+    const segmentSizeY = positiveModulo(yValues[segmentEndIndex] - yValues[segmentStartIndex], 1);
     const positionInSegment =
         segmentSizeX < 0.001
             ? 0.5
-            : ((x - xValues[segmentStartIndex] + 1) % 1) / segmentSizeX;
-    return (yValues[segmentStartIndex] + segmentSizeY * positionInSegment + 1) % 1;
+            : positiveModulo(x - xValues[segmentStartIndex], 1) / segmentSizeX;
+    return positiveModulo(yValues[segmentStartIndex] + segmentSizeY * positionInSegment, 1);
 }
 
 
@@ -49,7 +52,7 @@ export function validateProgress(p: number[]): void {
         if (curr < 0 || curr >= 1) {
             throw new Error(`FloatMapping - Progress outside of range: ${p.join(", ")}`);
         }
-        if (progressDistance(curr, prev) < DistanceEpsilon) {
+        if (progressDistance(curr, prev) <= DistanceEpsilon) {
             throw new Error(`FloatMapping - Progress repeats a value: ${p.join(", ")}`);
         }
         if (curr < prev) {

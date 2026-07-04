@@ -14,39 +14,38 @@
  * limitations under the License.
  */
 
+import { linearMap, validateProgress } from './FloatMapping.js';
+
+/**
+ * A DoubleMapper maps a value in one coordinate space to another, and back,
+ * given a set of (source, target) anchor pairs. The mapping is a CIRCULAR
+ * piecewise-linear interpolation over [0, 1): the segment from the last anchor
+ * back to the first wraps through 0/1. This is what lets Morph translate a
+ * perimeter progress on one polygon to the corresponding progress on another.
+ *
+ * Faithful port of androidx.graphics.shapes.DoubleMapper (FloatMapping.kt).
+ */
 export class DoubleMapper {
-    constructor(private mapping: [number, number][]) {}
+    private readonly sourceValues: number[];
+    private readonly targetValues: number[];
 
-    map(value: number): number {
-        // Find the two pairs in the mapping that the value falls between
-        let p1: [number, number] = [0, 0], p2: [number, number] = [1, 1];
-        for (let i = 0; i < this.mapping.length; i++) {
-            if (this.mapping[i][0] <= value) {
-                p1 = this.mapping[i];
-            }
-            if (this.mapping[i][0] >= value) {
-                p2 = this.mapping[i];
-                break;
-            }
-        }
-        if (p1[0] === p2[0]) return p1[1];
-        const progress = (value - p1[0]) / (p2[0] - p1[0]);
-        return p1[1] + progress * (p2[1] - p1[1]);
+    constructor(mappings: [number, number][]) {
+        this.sourceValues = mappings.map((m) => m[0]);
+        this.targetValues = mappings.map((m) => m[1]);
+        validateProgress(this.sourceValues);
+        validateProgress(this.targetValues);
     }
 
-    mapBack(value: number): number {
-        let p1: [number, number] = [0, 0], p2: [number, number] = [1, 1];
-        for (let i = 0; i < this.mapping.length; i++) {
-            if (this.mapping[i][1] <= value) {
-                p1 = this.mapping[i];
-            }
-            if (this.mapping[i][1] >= value) {
-                p2 = this.mapping[i];
-                break;
-            }
-        }
-        if (p1[1] === p2[1]) return p1[0];
-        const progress = (value - p1[1]) / (p2[1] - p1[1]);
-        return p1[0] + progress * (p2[0] - p1[0]);
+    map(x: number): number {
+        return linearMap(this.sourceValues, this.targetValues, x);
     }
+
+    mapBack(x: number): number {
+        return linearMap(this.targetValues, this.sourceValues, x);
+    }
+
+    static readonly Identity = new DoubleMapper([
+        [0, 0],
+        [0.5, 0.5],
+    ]);
 }

@@ -1,35 +1,59 @@
 {
   "name": "material-shapes-ts",
-  "version": "0.1.0",
-  "description": "Material Shapes implementation in TypeScript",
+  "version": "0.2.0",
+  "description": "Material Design shapes for the web — all 35 shapes, plus morphing/transitions. Ported from AndroidX Graphics Shapes.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "default": "./dist/index.js"
+    },
+    "./vue": {
+      "types": "./dist/vue/index.d.ts",
+      "import": "./dist/vue/index.js",
+      "default": "./dist/vue/index.js"
     }
   },
   "files": [
     "dist"
   ],
+  "sideEffects": false,
   "scripts": {
     "build": "tsc",
     "watch": "tsc -w",
     "lint": "eslint .",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --test test/*.test.js",
+    "prepublishOnly": "npm run build",
+    "build:demo": "node scripts/build-demo.mjs"
   },
   "keywords": [
     "material",
+    "material-design",
     "shapes",
+    "morph",
+    "svg",
+    "clip-path",
+    "vue",
     "typescript"
   ],
   "author": "Ruan Spies",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "packageManager": "pnpm@10.27.0",
+  "peerDependencies": {
+    "vue": "^3.3.0"
+  },
+  "peerDependenciesMeta": {
+    "vue": {
+      "optional": true
+    }
+  },
   "devDependencies": {
     "@types/node": "^22.10.5",
-    "typescript": "^5.7.3"
+    "esbuild": "^0.28.1",
+    "typescript": "^5.7.3",
+    "vue": "^3.5.39"
   }
 }
