@@ -153,6 +153,21 @@ npm run build   # tsc → dist/
 npm test        # node:test — validates all 35 shapes + all 35×35 morph pairs
 ```
 
+## Releasing
+
+CI publishes to the public npm registry on every `v*` tag (see
+[`.github/workflows/publish.yml`](./.github/workflows/publish.yml)). One-time setup:
+add an npm **Automation** token as the `NPM_TOKEN` repo secret.
+
+```bash
+# bump "version" in package.json (e.g. 0.2.0 → 0.2.1), commit, then:
+git tag v0.2.1
+git push --tags        # → runs build + tests, then publishes with provenance
+```
+
+The tag must match `package.json`'s version or the workflow fails. Every push and
+PR also runs build + tests via [`ci.yml`](./.github/workflows/ci.yml).
+
 ## Credits & license
 
 Ported from the Android Open Source Project's `androidx.graphics.shapes` and

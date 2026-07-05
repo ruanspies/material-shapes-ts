@@ -41,6 +41,14 @@
   ],
   "author": "Ruan Spies",
   "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ruanspies/material-shapes-ts.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ruanspies/material-shapes-ts/issues"
+  },
+  "homepage": "https://github.com/ruanspies/material-shapes-ts#readme",
   "packageManager": "pnpm@10.27.0",
   "peerDependencies": {
     "vue": "^3.3.0"

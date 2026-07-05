@@ -1,0 +1,62 @@
+name: Publish
+
+# Publishes to the public npm registry when a version tag (e.g. v0.2.1) is pushed.
+# Can also be run manually (workflow_dispatch), which publishes whatever version
+# is currently in package.json.
+#
+# Setup required once (repo → Settings → Secrets and variables → Actions):
+#   NPM_TOKEN — an npm "Automation" access token with publish rights.
+#
+# Release flow:
+#   1. Bump "version" in package.json (e.g. 0.2.0 → 0.2.1)
+#   2. Commit, then: git tag v0.2.1 && git push --tags
+#   The tag must match package.json's version, or the run fails.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write # required for npm provenance attestations
+
+jobs:
+  publish:
+    name: publish to npm
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify tag matches package.json version
+        if: github.ref_type == 'tag'
+        run: |
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          TAG_VERSION=${GITHUB_REF_NAME#v}
+          echo "package.json = $PKG_VERSION   tag = $TAG_VERSION"
+          if [ "$PKG_VERSION" != "$TAG_VERSION" ]; then
+            echo "::error::Tag v$TAG_VERSION does not match package.json version $PKG_VERSION. Bump the version and retag."
+            exit 1
+          fi
+
+      - name: Build
+        run: pnpm build
+
+      - name: Test
+        run: pnpm test
+
+      - name: Publish
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
