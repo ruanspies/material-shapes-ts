@@ -1,6 +1,6 @@
 {
   "name": "material-shapes-ts",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Material Design shapes for the web — all 35 shapes, plus morphing/transitions. Ported from AndroidX Graphics Shapes.",
   "type": "module",
   "main": "./dist/index.js",

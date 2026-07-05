@@ -93,7 +93,10 @@ your own.
 ## Vue 3
 
 Bindings live in the `material-shapes-ts/vue` subpath (`vue` is an optional peer
-dependency, never bundled into the core):
+dependency, never bundled into the core). They come in three flavours: **render a
+shape** as SVG, **clip any element** to a shape, and **morph** either on interaction.
+
+### Render a shape as SVG
 
 ```vue
 <script setup lang="ts">
@@ -105,18 +108,63 @@ const heartPath = useMorph('Circle', 'Heart', t); // reactive path string
 </script>
 
 <template>
-  <!-- static shape -->
-  <MaterialShape name="Heart" :size="120" color="deeppink" />
-
-  <!-- declarative morph -->
+  <MaterialShape :shape="'Heart'" :size="120" color="deeppink" />
   <ShapeMorph from="Circle" to="Heart" :progress="t" :size="120" />
-
-  <!-- or drive the path yourself -->
   <svg viewBox="0 0 1 1"><path :d="heartPath" /></svg>
 </template>
 ```
 
-Also exported: `useShapePath(shape)`.
+### Clip any element to a shape — the `v-material-shape` directive
+
+Because shapes are normalized to a 0..1 box, they map 1:1 onto an SVG clipPath with
+`clipPathUnits="objectBoundingBox"`, so one path clips an element at any size.
+
+```vue
+<button v-material-shape="'Flower'">Save</button>
+
+<!-- morph on hover / focus (respects prefers-reduced-motion) -->
+<button v-material-shape="{ rest: 'Circle', hover: 'Flower', duration: 300, easing: 'emphasized' }">
+  Save
+</button>
+```
+
+> Heads-up: `clip-path` also clips box-shadow, CSS borders and the focus ring. For
+> interactive elements reach for `<ShapeSurface>`, which restores a focus ring and
+> supports drop-shadow elevation.
+
+### Shaped surfaces & backdrops
+
+```vue
+<script setup lang="ts">
+import { ShapeSurface, ShapeBackdrop } from 'material-shapes-ts/vue';
+</script>
+
+<template>
+  <!-- clips the slot to a shape, morphs on hover, keeps an accessible focus ring -->
+  <ShapeSurface shape="Circle" hover-shape="Flower" :size="72">
+    <MyIcon />
+  </ShapeSurface>
+
+  <!-- a filled shape behind content -->
+  <ShapeBackdrop shape="Sunny" color="teal" :opacity="0.12">
+    <h2>Sits on top of the shape</h2>
+  </ShapeBackdrop>
+</template>
+```
+
+Style `<ShapeSurface>` with `--shape-focus-color` (focus ring) and
+`--shape-surface-shadow` (a drop-shadow `filter`, since box-shadow is clipped away).
+
+### Register globally (optional)
+
+```ts
+import { MaterialShapesPlugin } from 'material-shapes-ts/vue';
+app.use(MaterialShapesPlugin); // v-material-shape, <ShapeSurface>, <ShapeBackdrop>
+```
+
+Also exported: `useShapePath(shape)`, `useShapeClip(shape)`,
+`useShapeMorphClip(from, to, progress)` (return `{ clipId, pathD, clipStyle }` for
+rolling your own clipped element).
 
 ## Rendering recipes
 
